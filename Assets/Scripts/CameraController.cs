@@ -5,10 +5,14 @@ public class CameraController : MonoBehaviour
 {
     [SerializeField] float movementSpeed;
     [SerializeField] private CinemachineVirtualCamera cinemachineVirtualCamera;
-    [SerializeField] int maxCameraDistance;
-    [SerializeField] int minCameraDistance;
+    private const int MAX_CAMERA_DISTANCE = 50;
+    private const int MIN_CAMERA_DISTANCE = 3;
     private const int MAX_SCROLL = 50;
+    private const int SCROLL_SPEED = 1;
+    private const float MAX_CAMERA_DISTANCE_SCALE = 1.5f;
+    private const int INITAL_CAMERA_DISTANCE = 10;
     private CinemachineComponentBase cinemachineComponentBase;
+    private float cameraDistanceScale;
 
     void Update()
     {
@@ -16,9 +20,11 @@ public class CameraController : MonoBehaviour
         {
             cinemachineComponentBase = cinemachineVirtualCamera.GetCinemachineComponent(CinemachineCore.Stage.Body);
         }
+        
+        var scale = (cinemachineComponentBase as CinemachineFramingTransposer).m_CameraDistance / INITAL_CAMERA_DISTANCE;
+        cameraDistanceScale = scale <= MAX_CAMERA_DISTANCE_SCALE ? scale : MAX_CAMERA_DISTANCE_SCALE;
         HandleMovement();
         HandleZoom();
-        Debug.Log(cinemachineVirtualCamera.m_Lens.OrthographicSize);
 
     }
 
@@ -28,7 +34,15 @@ public class CameraController : MonoBehaviour
         
         if (cinemachineComponentBase is CinemachineFramingTransposer)
         {
-            (cinemachineComponentBase as CinemachineFramingTransposer).m_CameraDistance -= mouseWheelInput * 1;
+            if (mouseWheelInput < 0 && (cinemachineComponentBase as CinemachineFramingTransposer).m_CameraDistance > MAX_CAMERA_DISTANCE)
+            {
+                return;
+            }
+            else if (mouseWheelInput > 0 && (cinemachineComponentBase as CinemachineFramingTransposer).m_CameraDistance <= MIN_CAMERA_DISTANCE)
+            {
+                return;
+            }
+            (cinemachineComponentBase as CinemachineFramingTransposer).m_CameraDistance -= mouseWheelInput * SCROLL_SPEED;
         }
     }
 
@@ -71,7 +85,7 @@ public class CameraController : MonoBehaviour
             inputMoveDir.x += 1f;
         }
 
-        Vector3 moveVector = transform.up * inputMoveDir.y + transform.right * inputMoveDir.x;
+        Vector3 moveVector = transform.up * inputMoveDir.y * cameraDistanceScale + transform.right * inputMoveDir.x * cameraDistanceScale;
         transform.position += moveVector * movementSpeed * Time.deltaTime;
     }
 }
